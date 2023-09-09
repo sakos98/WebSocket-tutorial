@@ -1,3 +1,5 @@
+const socket = io();
+
 let userName = ""; 
 
 const loginForm = document.getElementById("welcome-form");
@@ -6,6 +8,20 @@ const messagesList = document.getElementById("messages-list");
 const addMessageForm = document.getElementById("add-messages-form");
 const userNameInput = document.getElementById("username");
 const messageContentInput = document.getElementById("message-content");
+
+socket.on('message', ({ author, content, newUser }) => {
+  if (newUser) {
+    if (author === 'Chat Bot') {
+      if (content.includes('You have joined the conversation.')) {
+        addWelcomeMessage(content);
+      } else {
+        addWelcomeMessage(content);
+      }
+    }
+  } else {
+    addMessage(author, content);
+  }
+});
 
 loginForm.addEventListener("submit", function(e){
   login(e);
@@ -26,18 +42,22 @@ function login(e) {
   userName = enterUserLogin;
   loginForm.classList.remove("show");
   messagesSection.classList.add("show");
+  socket.emit('user-login', userName);
 }
+
 
 function sendMessage(e) {
   e.preventDefault();
 
-  const messageContent = messageContentInput.value;
-  if (!messageContent) {
-    alert("Please enter message.");
-    return;
+  let messageContent = messageContentInput.value;
+  if(!messageContent.length) {
+    alert('You have to type something!');
   }
-  addMessage(userName, messageContent);
-  messageContentInput.value = "";
+  else {
+    addMessage(userName, messageContent);
+    socket.emit('message', { author: userName, content: messageContent });
+    messageContentInput.value = '';
+  }
 }
 
 function addMessage(author, content) {
@@ -52,4 +72,17 @@ function addMessage(author, content) {
     </div>
   `;
   messagesList.appendChild(message);
+}
+
+function addWelcomeMessage(content) {
+  const infoMessage = document.createElement("li");
+  infoMessage.classList.add("message");
+  infoMessage.classList.add("message--system");
+
+  infoMessage.innerHTML = `
+    <div class="message__content message__info">
+      ${content}
+    </div>
+  `;
+  messagesList.appendChild(infoMessage);
 }
